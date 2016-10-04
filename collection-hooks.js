@@ -102,10 +102,28 @@ CollectionHooks.extendCollectionInstance = function extendCollectionInstance (se
         return constructor.prototype[method].apply(self, args)
       })
     }
+    
+    collection['userId'] = function(userId) {
+      if (Meteor.isServer)
+      {
+        self._userId = userId;
+      }
+      return collection;
+    }
 
     collection[method] = function () {
       if (CollectionHooks.directEnv.get() === true) {
         return _super.apply(collection, arguments)
+      }
+
+      var userId = CollectionHooks.getUserId();
+      if (self._userId !== undefined)
+      {
+        if (Meteor.isServer) 
+        {
+          userId = self._userId;
+        }
+        self._userId = undefined;
       }
 
       // NOTE: should we decide to force `update` with `{upsert:true}` to use
@@ -119,7 +137,7 @@ CollectionHooks.extendCollectionInstance = function extendCollectionInstance (se
       // }
 
       return advice.call(this,
-        CollectionHooks.getUserId(),
+        userId,
         _super,
         self,
         method === 'upsert' ? {
